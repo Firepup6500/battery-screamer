@@ -35,7 +35,12 @@ def writeCache(cache: dict) -> None:
         file.write(f"cacheData = {cache}")
 
 
-data = {"hostname": __import__("platform").node(), "runs": str(cacheData["runsSinceLastLog"] + 1)}
+data = {
+    "hostname": __import__("platform").node(),
+    "runs": str(cacheData["runsSinceLastLog"] + 1),
+}
+cacheData["runsSinceLastLog"] += 1
+writeCache(cacheData)
 tmpData = {}
 with open("/sys/class/power_supply/BAT0/status", "r") as state:
     data["state"] = state.read().strip().lower()
@@ -51,10 +56,8 @@ data["percent"] = str(round(tmpData["raw_percent"], 2))
 if (
     data["state"] == cacheData["old_state"]
     and tmpData["raw_percent"] >= 5
-    and cacheData["runsSinceLastLog"] <= 15
+    and cacheData["runsSinceLastLog"] < 15
 ):
-    cacheData["runsSinceLastLog"] += 1
-    writeCache(cacheData)
     exit()
 
 tmpData["percent_change"] = round(
@@ -73,15 +76,15 @@ else:
 
 try:
     post(env["SLACK_WEBHOOK_URL"], json=data)
+    writeCache(
+        {
+            "old_state": data["state"],
+            "raw_old_percent": tmpData["raw_percent"],
+            "old_percent": data["percent"],
+            "runsSinceLastLog": 0,
+        }
+    )
 except ConnectionError:
     cacheData["runsSinceLastLog"] += 1
     writeCache(cacheData)
     exit("Failed to post to webhook")
-writeCache(
-    {
-        "old_state": data["state"],
-        "raw_old_percent": tmpData["raw_percent"],
-        "old_percent": data["percent"],
-        "runsSinceLastLog": 0,
-    }
-)
