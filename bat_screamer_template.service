@@ -3,5 +3,5 @@ Description=Battery Screamer Service
 
 [Service]
 Type=oneshot
-ExecStart=/usr/bin/python3 /path/to/bat_screamer/main.py
-WorkingDirectory=/path/to/bat_screamer
+ExecStart=/usr/bin/python3 /path/to/battery_screamer/main.py
+WorkingDirectory=/path/to/battery_screamer
