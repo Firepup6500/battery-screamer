@@ -1,0 +1,87 @@
+from subprocess import check_output as run
+from requests import post
+from requests.exceptions import ConnectionError
+from os import environ as env
+from dotenv import load_dotenv
+
+load_dotenv()
+if not env.get("SLACK_WEBHOOK_URL"):
+    exit("Please set the slack webhook URL as SLACK_WEBHOOK_URL in your .env file.")
+cacheData = {
+    "old_state": "N/A",
+    "raw_old_percent": 0,
+    "old_percent": 0,
+    "runsSinceLastLog": 0,
+}
+try:
+    from cache import cacheData
+except ImportError:
+    ...
+
+# Data example, from slack
+"""
+{
+  "hostname": "Example text",
+  "percent": "Example text",
+  "change": "Example text",
+  "state": "Example text",
+  "runs": "Example text",
+}
+"""
+
+
+def writeCache(cache: dict) -> None:
+    with open("cache.py", "w") as file:
+        file.write(f"cacheData = {cache}")
+
+
+data = {"hostname": __import__("platform").node(), "runs": str(cacheData["runsSinceLastLog"] + 1)}
+tmpData = {}
+with open("/sys/class/power_supply/BAT0/status", "r") as state:
+    data["state"] = state.read().strip().lower()
+
+with open("/sys/class/power_supply/BAT0/charge_now", "r") as charge:
+    tmpData["current"] = int(charge.read().strip())
+
+with open("/sys/class/power_supply/BAT0/charge_full", "r") as full:
+    tmpData["full"] = int(full.read().strip())
+
+tmpData["raw_percent"] = (tmpData["current"] / tmpData["full"]) * 100
+data["percent"] = str(round(tmpData["raw_percent"], 2))
+if (
+    data["state"] == cacheData["old_state"]
+    and tmpData["raw_percent"] >= 5
+    and cacheData["runsSinceLastLog"] <= 15
+):
+    cacheData["runsSinceLastLog"] += 1
+    writeCache(cacheData)
+    exit()
+
+tmpData["percent_change"] = round(
+    tmpData["raw_percent"] - cacheData["raw_old_percent"], 2
+)
+if tmpData["percent_change"] > 0:
+    data["change"] = (
+        f"up from {cacheData['old_percent']}% (+{tmpData['percent_change']}%)"
+    )
+elif data["percent_change"] < 0:
+    data["change"] = (
+        f"down from {cacheData['old_percent']}% ({tmpData['percent_change']}%)"
+    )
+else:
+    data["change"] = "no change"
+
+try:
+    post(env["SLACK_WEBHOOK_URL"], json=data)
+except ConnectionError:
+    cacheData["runsSinceLastLog"] += 1
+    writeCache(cacheData)
+    exit("Failed to post to webhook")
+writeCache(
+    {
+        "old_state": data["state"],
+        "raw_old_percent": tmpData["raw_percent"],
+        "old_percent": data["percent"],
+        "runsSinceLastLog": 0,
+    }
+)
