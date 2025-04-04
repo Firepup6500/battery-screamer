@@ -1,3 +1,4 @@
 .env
 __pycache__/**
 bat_screamer.service
+cache.py
