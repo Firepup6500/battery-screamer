@@ -64,7 +64,7 @@ if tmpData["percent_change"] > 0:
     data["change"] = (
         f"up from {cacheData['old_percent']}% (+{tmpData['percent_change']}%)"
     )
-elif data["percent_change"] < 0:
+elif tmpData["percent_change"] < 0:
     data["change"] = (
         f"down from {cacheData['old_percent']}% ({tmpData['percent_change']}%)"
     )
