@@ -55,7 +55,7 @@ tmpData["raw_percent"] = (tmpData["current"] / tmpData["full"]) * 100
 data["percent"] = str(round(tmpData["raw_percent"], 2))
 if (
     data["state"] == cacheData["old_state"]
-    and tmpData["raw_percent"] >= 5
+    and tmpData["raw_percent"] > 15
     and cacheData["runsSinceLastLog"] < 5
 ):
     exit()
