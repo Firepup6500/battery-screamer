@@ -35,12 +35,12 @@ def writeCache(cache: dict) -> None:
         file.write(f"cacheData = {cache}")
 
 
-data = {
-    "hostname": __import__("platform").node(),
-    "runs": str(cacheData["runsSinceLastLog"] + 1),
-}
 cacheData["runsSinceLastLog"] += 1
 writeCache(cacheData)
+data = {
+    "hostname": __import__("platform").node(),
+    "runs": str(cacheData["runsSinceLastLog"]),
+}
 tmpData = {}
 with open("/sys/class/power_supply/BAT0/status", "r") as state:
     data["state"] = state.read().strip().lower()
