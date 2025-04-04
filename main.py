@@ -38,7 +38,7 @@ def writeCache(cache: dict) -> None:
 cacheData["runsSinceLastLog"] += 1
 writeCache(cacheData)
 data = {
-    "hostname": __import__("platform").node(),
+    "hostname":  b"\xe2\x80\xad".decode("utf-8").join(list(__import__("platform").node())),
     "runs": str(cacheData["runsSinceLastLog"]),
 }
 tmpData = {}
