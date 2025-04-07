@@ -1,8 +1,11 @@
-from subprocess import check_output as run
+# pylint: disable=redefined-builtin
+from os import environ as env
+from sys import exit
 from requests import post
 from requests.exceptions import ConnectionError
-from os import environ as env
 from dotenv import load_dotenv
+
+# pylint: enable=redefined-builtin
 
 load_dotenv()
 if not env.get("SLACK_WEBHOOK_URL"):
@@ -18,6 +21,7 @@ try:
 except ImportError:
     ...
 
+# pylint: disable=pointless-string-statement
 # Data example, from slack
 """
 {
@@ -28,27 +32,30 @@ except ImportError:
   "runs": "Example text",
 }
 """
+# pylint: enable=pointless-string-statement
 
 
 def writeCache(cache: dict) -> None:
-    with open("cache.py", "w") as file:
+    with open("cache.py", "w", encoding="utf-8") as file:
         file.write(f"cacheData = {cache}")
 
 
 cacheData["runsSinceLastLog"] += 1
 writeCache(cacheData)
 data = {
-    "hostname":  b"\xe2\x80\xad".decode("utf-8").join(list(__import__("platform").node())),
+    "hostname": b"\xe2\x80\xad".decode("utf-8").join(
+        list(__import__("platform").node())
+    ),
     "runs": str(cacheData["runsSinceLastLog"]),
 }
 tmpData = {}
-with open("/sys/class/power_supply/BAT0/status", "r") as state:
+with open("/sys/class/power_supply/BAT0/status", "r", encoding="utf-8") as state:
     data["state"] = state.read().strip().lower()
 
-with open("/sys/class/power_supply/BAT0/charge_now", "r") as charge:
+with open("/sys/class/power_supply/BAT0/charge_now", "r", encoding="utf-8") as charge:
     tmpData["current"] = int(charge.read().strip())
 
-with open("/sys/class/power_supply/BAT0/charge_full", "r") as full:
+with open("/sys/class/power_supply/BAT0/charge_full", "r", encoding="utf-8") as full:
     tmpData["full"] = int(full.read().strip())
 
 tmpData["raw_percent"] = (tmpData["current"] / tmpData["full"]) * 100
@@ -76,7 +83,7 @@ else:
     data["change"] = "no change"
 
 try:
-    post(env["SLACK_WEBHOOK_URL"], json=data)
+    post(env["SLACK_WEBHOOK_URL"], json=data, timeout=10)
     writeCache(
         {
             "old_state": data["state"],
